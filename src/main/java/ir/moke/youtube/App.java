@@ -8,6 +8,7 @@ import ir.moke.youtube.model.DownloadInfo;
 import ir.moke.youtube.model.PlayListResponse;
 import ir.moke.youtube.model.ProgressInfo;
 
+import javax.swing.plaf.IconUIResource;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -15,6 +16,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.time.Duration;
 
 public class App {
@@ -46,8 +48,16 @@ public class App {
                 url = YOUTUBE_DOWNLOAD_URL + videoUrl + queryParam;
                 HttpResponse<String> infoResponse = sendRequest(VIDEO_INFO + videoUrl);
                 String title = gson.fromJson(infoResponse.body(), JsonObject.class).get("title").getAsString();
+
+                String id = String.format("%02d", i);
+                String finalFileName = id + "_" + title + ".mp4";
+                File targetFile = new File(CURRENT_WORKING_DIR + "/" + finalFileName);
+                System.out.println(finalFileName);
+                if (targetFile.exists()) continue;
+
                 HttpResponse<String> downloadOrderResponse = sendRequest(url);
                 ProgressInfo progressInfo = gson.fromJson(downloadOrderResponse.body(), ProgressInfo.class);
+
                 boolean done = false;
                 URL downloadFileUrl = null;
                 do {
@@ -59,10 +69,7 @@ public class App {
                     }
                 } while (!done);
 
-                String id = String.format("%02d", i);
-                String finalFileName = id + "_" + title + ".mp4";
-                File targetFile = new File(CURRENT_WORKING_DIR + "/" + finalFileName);
-                System.out.println(finalFileName);
+
                 Downloader.instance.download(downloadFileUrl, targetFile);
                 System.out.println("\n");
 
