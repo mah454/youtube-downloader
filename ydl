@@ -1,3 +1,10 @@
 #!/bin/bash
 
-java -jar /opt/youtube-downloader/youtube-downloader.jar  $1
+getopts "d:a" DBUG_MODE
+
+if [ ! -z $DBUG_MODE ] && [ ! -z $OPTARG ]  ; then 
+	echo "Debug mode on port 5005 ... "
+	java -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005 -jar /opt/youtube-downloader/youtube-downloader.jar  $OPTARG
+else 
+	java -jar /opt/youtube-downloader/youtube-downloader.jar  $1
+fi
