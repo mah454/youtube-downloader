@@ -47,4 +47,14 @@ public class DownloadInfo {
     public void setText(String text) {
         this.text = text;
     }
+
+    @Override
+    public String toString() {
+        return "DownloadInfo{" +
+                "download_url='" + download_url + '\'' +
+                ", progress=" + progress +
+                ", success=" + success +
+                ", text='" + text + '\'' +
+                '}';
+    }
 }
