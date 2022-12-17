@@ -104,7 +104,7 @@ public class App {
             HttpResponse<String> downloadInfoResponse = sendRequest(progressInfo.getProgress_url());
             DownloadInfo downloadInfo = gson.fromJson(downloadInfoResponse.body(), DownloadInfo.class);
             printLog(downloadInfo);
-            System.out.print("\rRemote progress: " + downloadInfo.getProgress());
+            System.out.print("\rRemote progress: " + downloadInfo.getProgress()/100 + "%");
             if (downloadInfo.getSuccess() == 1 && downloadInfo.getText().equalsIgnoreCase("Finished")) {
                 done = true;
                 downloadFileUrl = new URL(downloadInfo.getDownload_url());
