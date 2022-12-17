@@ -2,25 +2,33 @@ package ir.moke.youtube;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import ir.moke.youtube.download.Downloader;
 import ir.moke.youtube.model.DownloadInfo;
-import ir.moke.youtube.model.PlayListResponse;
 import ir.moke.youtube.model.ProgressInfo;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class App {
     private static final String CURRENT_WORKING_DIR = System.getProperty("user.dir");
+    private static final File PLAYLIST_FILE = new File("youtube_playlist.urls");
+    ;
 
+    private static final String YOUTUBE_PLAYLIST_URL = "https://api.youtubeplaylist.cc/playlist?url=";
     private static final String YOUTUBE_ENGINE_URL = "https://ddownr.com/api/info/checkPlaylist.php?url=";
     private static final String YOUTUBE_DOWNLOAD_URL = "https://ddownr.com/download.php?url=";
     private static final String VIDEO_INFO = "https://ddownr.com/api/info/index.php?url=";
@@ -30,7 +38,7 @@ public class App {
     private static final Gson gson = new GsonBuilder().create();
     private static final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_2)
-            .connectTimeout(Duration.ofSeconds(10))
+            .connectTimeout(Duration.ofSeconds(60))
             .build();
 
     static {
@@ -46,6 +54,11 @@ public class App {
             System.exit(1);
         }
 
+        /*
+         * Example Playlist :
+         * https://www.youtube.com/playlist?list=PLjxrf2q8roU23XGwz3Km7sQZFTdB996iG
+         * */
+
         String youtube_url = args[0];
 
         if (youtube_url.contains("playlist")) {
@@ -55,22 +68,31 @@ public class App {
         } else {
             System.out.println("[Warning] Url does not supported");
         }
-
     }
 
     private static void downloadPlaylist(String url) throws Exception {
-        HttpResponse<String> response = sendRequest(YOUTUBE_ENGINE_URL + url);
-        printLog(YOUTUBE_ENGINE_URL + url);
-
-        PlayListResponse playListResponse = gson.fromJson(response.body(), PlayListResponse.class);
-        System.out.println("Playlist length: " + playListResponse.getVideos().length);
-
-        if (playListResponse.isStatus()) {
-            for (int i = 0; i < playListResponse.getVideos().length; i++) {
-                String videoUrl = playListResponse.getVideos()[i];
-                downloadSingle(videoUrl, i, true);
-
+        List<String> playlistUrls = new ArrayList<>();
+        if (PLAYLIST_FILE.exists()) {
+            playlistUrls.addAll(readPlaylistUrls());
+        } else {
+            System.out.println("Fetch playlist information ...");
+            HttpResponse<String> response = sendRequest(YOUTUBE_PLAYLIST_URL + url);
+            printLog(YOUTUBE_ENGINE_URL + url);
+            JsonObject jsonObject = gson.fromJson(response.body(), JsonObject.class);
+            JsonElement items = jsonObject.get("items");
+            if (items != null && items.isJsonArray()) {
+                for (JsonElement element : items.getAsJsonArray()) {
+                    String u = element.getAsJsonObject().get("url").getAsString();
+                    playlistUrls.add(u);
+                }
             }
+            writePlaylistUrls(playlistUrls);
+        }
+
+        System.out.println("Playlist length: " + playlistUrls.size());
+        for (int i = 0; i < playlistUrls.size(); i++) {
+            String videoUrl = playlistUrls.get(i);
+            downloadSingle(videoUrl, i, true);
         }
     }
 
@@ -104,7 +126,7 @@ public class App {
             HttpResponse<String> downloadInfoResponse = sendRequest(progressInfo.getProgress_url());
             DownloadInfo downloadInfo = gson.fromJson(downloadInfoResponse.body(), DownloadInfo.class);
             printLog(downloadInfo);
-            System.out.print("\rRemote progress: " + (downloadInfo.getProgress()/100)/1000 + "%");
+            System.out.print("\rRemote progress: " + (downloadInfo.getProgress() * 100) / 1000 + "%");
             if (downloadInfo.getSuccess() == 1 && downloadInfo.getText().equalsIgnoreCase("Finished")) {
                 done = true;
                 downloadFileUrl = new URL(downloadInfo.getDownload_url());
@@ -128,5 +150,28 @@ public class App {
         if (DEBUG_MODE) {
             System.out.println("[DEBUG] " + o);
         }
+    }
+
+    private static void writePlaylistUrls(List<String> urls) {
+        try {
+            StringBuilder content = new StringBuilder();
+            urls.forEach(item -> content.append(item).append("\n"));
+            try (FileWriter writer = new FileWriter(PLAYLIST_FILE)) {
+                writer.write(content.toString());
+                writer.flush();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static List<String> readPlaylistUrls() {
+        try {
+            StringBuilder content = new StringBuilder();
+            return Files.readAllLines(PLAYLIST_FILE.toPath());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return Collections.emptyList();
     }
 }
