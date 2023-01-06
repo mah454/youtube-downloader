@@ -1,15 +1,15 @@
 package ir.moke.youtube.model;
 
-public class DownloadInfo {
+public class ProgressResponse {
     private String download_url;
     private int progress;
     private int success;
     private String text;
 
-    public DownloadInfo() {
+    public ProgressResponse() {
     }
 
-    public DownloadInfo(String download_url, int progress, int success, String text) {
+    public ProgressResponse(String download_url, int progress, int success, String text) {
         this.download_url = download_url;
         this.progress = progress;
         this.success = success;

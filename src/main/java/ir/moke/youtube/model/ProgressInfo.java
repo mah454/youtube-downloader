@@ -2,14 +2,14 @@ package ir.moke.youtube.model;
 
 public class ProgressInfo {
     private boolean success;
-    private String progress_url;
+    private String download_url;
 
     public ProgressInfo() {
     }
 
-    public ProgressInfo(boolean success, String progress_url) {
+    public ProgressInfo(boolean success, String download_url) {
         this.success = success;
-        this.progress_url = progress_url;
+        this.download_url = download_url;
     }
 
     public boolean isSuccess() {
@@ -20,19 +20,19 @@ public class ProgressInfo {
         this.success = success;
     }
 
-    public String getProgress_url() {
-        return progress_url;
+    public String getDownload_url() {
+        return download_url;
     }
 
-    public void setProgress_url(String progress_url) {
-        this.progress_url = progress_url;
+    public void setDownload_url(String download_url) {
+        this.download_url = download_url;
     }
 
     @Override
     public String toString() {
         return "DownloadInfo{" +
                 "success=" + success +
-                ", progress_url='" + progress_url + '\'' +
+                ", progress_url='" + download_url + '\'' +
                 '}';
     }
 }

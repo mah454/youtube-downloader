@@ -5,8 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import ir.moke.youtube.download.Downloader;
-import ir.moke.youtube.model.DownloadInfo;
-import ir.moke.youtube.model.ProgressInfo;
+import ir.moke.youtube.model.ProgressResponse;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -30,9 +29,9 @@ public class App {
 
     private static final String YOUTUBE_PLAYLIST_URL = "https://api.youtubeplaylist.cc/playlist?url=";
     private static final String YOUTUBE_ENGINE_URL = "https://ddownr.com/api/info/checkPlaylist.php?url=";
-    private static final String YOUTUBE_DOWNLOAD_URL = "https://ddownr.com/download.php?url=";
-    private static final String VIDEO_INFO = "https://ddownr.com/api/info/index.php?url=";
-    private static final String SINGLE_QUERY_PARAM = "&format-option=6";
+    private static final String YOUTUBE_DOWNLOAD_URL = "https://loader.to/ajax/download.php?format=720&url=";
+    private static final String PROGRESS_URL = "https://loader.to/ajax/progress.php?id=";
+    private static final String SINGLE_QUERY_PARAM = "?format=720";
     private static final String PLAYLIST_QUERY_PARAM = "&format-option=6&playlist=1&playliststart=1&playlistend=1&index=";
     private static boolean DEBUG_MODE = false;
     private static final Gson gson = new GsonBuilder().create();
@@ -105,8 +104,9 @@ public class App {
             url = url + SINGLE_QUERY_PARAM;
         }
         printLog(url);
-        HttpResponse<String> infoResponse = sendRequest(VIDEO_INFO + videoUrl);
+        HttpResponse<String> infoResponse = sendRequest(url);
         String title = gson.fromJson(infoResponse.body(), JsonObject.class).get("title").getAsString();
+        String link_id = gson.fromJson(infoResponse.body(), JsonObject.class).get("id").getAsString();
 
         String finalFileName = title + ".mp4";
         if (index != null) {
@@ -117,24 +117,29 @@ public class App {
         System.out.println(finalFileName);
         if (targetFile.exists()) return;
 
-        HttpResponse<String> downloadOrderResponse = sendRequest(url);
-        ProgressInfo progressInfo = gson.fromJson(downloadOrderResponse.body(), ProgressInfo.class);
-        printLog(progressInfo.getProgress_url());
         boolean done = false;
         URL downloadFileUrl = null;
-        do {
-            HttpResponse<String> downloadInfoResponse = sendRequest(progressInfo.getProgress_url());
-            DownloadInfo downloadInfo = gson.fromJson(downloadInfoResponse.body(), DownloadInfo.class);
-            printLog(downloadInfo);
-            System.out.print("\rRemote progress: " + (downloadInfo.getProgress() * 100) / 1000 + "% " + downloadInfo.getText());
-            if (downloadInfo.getSuccess() == 1 && downloadInfo.getText().equalsIgnoreCase("Finished")) {
-                done = true;
-                downloadFileUrl = new URL(downloadInfo.getDownload_url());
-            }
-        } while (!done);
+        String body = null;
+        HttpResponse<String> progressInfo ;
+        try {
+            do {
+                progressInfo = sendRequest(PROGRESS_URL + link_id);
+                body = progressInfo.body();
+                ProgressResponse progressResponse = gson.fromJson(body, ProgressResponse.class);
+                printLog(progressResponse);
+                System.out.print("\rRemote progress: " + (progressResponse.getProgress() * 100) / 1000 + "% " + progressResponse.getText());
+                if (progressResponse.getSuccess() == 1 && progressResponse.getText().equalsIgnoreCase("Finished")) {
+                    done = true;
+                    downloadFileUrl = new URL(progressResponse.getDownload_url());
+                }
+            } while (!done);
 
-        Downloader.instance.download(downloadFileUrl, targetFile);
-        System.out.println("\n");
+            Downloader.instance.download(downloadFileUrl, targetFile);
+            System.out.println("\n");
+        } catch (Exception e) {
+            System.out.println(body);
+            e.printStackTrace();
+        }
     }
 
     private static HttpResponse<String> sendRequest(String url) throws IOException, InterruptedException {
