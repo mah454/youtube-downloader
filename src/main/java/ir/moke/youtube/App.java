@@ -108,7 +108,7 @@ public class App {
         String title = gson.fromJson(infoResponse.body(), JsonObject.class).get("title").getAsString();
         String link_id = gson.fromJson(infoResponse.body(), JsonObject.class).get("id").getAsString();
 
-        String finalFileName = title + ".mp4";
+        String finalFileName = title.replaceAll("/","-") + ".mp4";
         if (index != null) {
             String id = String.format("%02d", index);
             finalFileName = id + "_" + title + ".mp4";
