@@ -111,7 +111,7 @@ public class App {
         String finalFileName = title.replaceAll("/","-") + ".mp4";
         if (index != null) {
             String id = String.format("%02d", index);
-            finalFileName = id + "_" + title + ".mp4";
+            finalFileName = id + "_" + title.replaceAll("/","-") + ".mp4";
         }
         File targetFile = new File(CURRENT_WORKING_DIR + "/" + finalFileName);
         System.out.println(finalFileName);
